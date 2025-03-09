@@ -1,110 +1,78 @@
 import 'package:flutter/material.dart';
 
+void main() => runApp(TodoApp());
+
+class TodoApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(debugShowCheckedModeBanner: false, home: TodoScreen());
+  }
+}
+
 class TodoScreen extends StatefulWidget {
   @override
   _TodoScreenState createState() => _TodoScreenState();
 }
 
 class _TodoScreenState extends State<TodoScreen> {
-  final List<Map<String, dynamic>> _tasks = [];
-  final TextEditingController _taskController = TextEditingController();
+  List<String> tasks = [];
+  final TextEditingController _controller = TextEditingController();
 
-  void _addTask() {
-    if (_taskController.text.isNotEmpty) {
+  void _addOrUpdateTask({int? index}) {
+    if (_controller.text.isNotEmpty) {
       setState(() {
-        _tasks.add({'title': _taskController.text, 'completed': false});
-        _taskController.clear();
+        if (index == null) {
+          tasks.add(_controller.text); // Add new task
+        } else {
+          tasks[index] = _controller.text; // Update task
+        }
       });
+      _controller.clear();
     }
   }
 
-  void _toggleTask(int index) {
-    setState(() {
-      _tasks[index]['completed'] = !_tasks[index]['completed'];
-    });
+  void _deleteTask(int index) {
+    setState(() => tasks.removeAt(index));
   }
 
-  void _removeTask(int index) {
-    setState(() {
-      _tasks.removeAt(index);
-    });
-  }
-
-  void _showAddTaskDialog() {
+  void _showTaskDialog({int? index}) {
+    if (index != null) _controller.text = tasks[index]; // Pre-fill for update
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Add New Task'),
-          content: TextField(
-            controller: _taskController,
-            decoration: InputDecoration(hintText: 'Enter task...'),
+      builder: (context) => AlertDialog(
+        title: Text(index == null ? "Add Task" : "Edit Task"),
+        content: TextField(controller: _controller),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              _addOrUpdateTask(index: index);
+              Navigator.pop(context);
+            },
+            child: Text(index == null ? "Add" : "Update"),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _addTask();
-                Navigator.pop(context);
-              },
-              child: Text('Add'),
-            ),
-          ],
-        );
-      },
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Task Manager')),
-      body: Padding(
-        padding: EdgeInsets.all(16),
-        child: _tasks.isEmpty
-            ? Center(
-                child: Text(
-                  'No tasks yet! Tap the + button to add some.',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              )
-            : ListView.builder(
-                itemCount: _tasks.length,
-                itemBuilder: (context, index) {
-                  return Card(
-                    elevation: 4,
-                    margin: EdgeInsets.symmetric(vertical: 8),
-                    child: ListTile(
-                      leading: Checkbox(
-                        value: _tasks[index]['completed'],
-                        onChanged: (bool? value) {
-                          _toggleTask(index);
-                        },
-                      ),
-                      title: Text(
-                        _tasks[index]['title'],
-                        style: TextStyle(
-                          decoration: _tasks[index]['completed']
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none,
-                        ),
-                      ),
-                      trailing: IconButton(
-                        icon: Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _removeTask(index),
-                      ),
-                    ),
-                  );
-                },
-              ),
+      appBar: AppBar(title: Text("To-Do List")),
+      body: ListView.builder(
+        itemCount: tasks.length,
+        itemBuilder: (context, index) => ListTile(
+          title: Text(tasks[index]),
+          onTap: () => _showTaskDialog(index: index), // Tap to edit
+          trailing: IconButton(
+            icon: Icon(Icons.delete, color: Colors.red),
+            onPressed: () => _deleteTask(index),
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddTaskDialog,
+        onPressed: () => _showTaskDialog(),
         child: Icon(Icons.add),
       ),
     );
